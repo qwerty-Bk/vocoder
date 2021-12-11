@@ -1,4 +1,15 @@
 from prettytable import PrettyTable
+import torch
+from scipy.io import wavfile
+
+import config
+from dataloader.meldataset import MAX_WAV_VALUE, load_wav
+
+
+if torch.cuda.is_available():
+    device = torch.device('cuda:0')
+else:
+    device = torch.device('cpu')
 
 
 def get_padding(kernel_size, dilation):
@@ -17,3 +28,16 @@ def count_parameters(model):
     return table, total_params
 
 
+def load_waveform(filename):
+    wav, sr = load_wav(filename)
+    wav = wav / MAX_WAV_VALUE
+    wav = torch.FloatTensor(wav).to(device)
+    return wav
+
+
+def log_audio(wav, prefix):
+    wav = wav.squeeze()
+    wav = wav * MAX_WAV_VALUE
+    wav = wav.cpu().detach().numpy().astype('int16')
+    tmp_path = config.output_dir + '/' + prefix + ".wav"
+    wavfile.write(tmp_path, 22050, wav)

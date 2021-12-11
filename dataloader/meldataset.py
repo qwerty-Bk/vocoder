@@ -9,6 +9,9 @@ import numpy as np
 from librosa.util import normalize
 from scipy.io.wavfile import read
 from librosa.filters import mel as librosa_mel_fn
+import wget
+import tarfile
+from pathlib import Path
 
 import config
 
@@ -112,6 +115,8 @@ class MelDataset(torch.utils.data.Dataset):
         self.fine_tuning = fine_tuning
         self.base_mels_path = base_mels_path
 
+        self.load()
+
     def __getitem__(self, index):
         filename = self.audio_files[index]
         if self._cache_ref_count == 0:
@@ -166,7 +171,19 @@ class MelDataset(torch.utils.data.Dataset):
                                    self.sampling_rate, self.hop_size, self.win_size, self.fmin, self.fmax_loss,
                                    center=False)
 
-        return (mel.squeeze(), audio.squeeze(0), filename, mel_loss.squeeze())
+        return mel.squeeze(), audio.squeeze(0), filename, mel_loss.squeeze()
 
     def __len__(self):
         return len(self.audio_files)
+
+    def load(self):
+        url = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
+        filename = "LJSpeech-1.1.tar.bz2"
+        if not Path("./LJSpeech-1.1/wavs").exists():
+            if not Path(filename).is_file():
+                print('Downloading dataset')
+                filename = wget.download(url)
+            print("Unzipping dataset")
+            my_tar = tarfile.open(filename)
+            my_tar.extractall('.')
+            my_tar.close()

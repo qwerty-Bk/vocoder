@@ -1,13 +1,4 @@
 import numpy as np
-
-from model.generator import Generator
-from model.mp_disc import MPDiscriminator
-from model.ms_disc import MSDiscriminator
-from loss.loss import GeneratorLoss, DiscriminatorLoss, FeatureLoss, MelLoss
-from utils.utils import count_parameters
-import config
-from dataloader.meldataset import MelDataset, get_dataset_filelist, mel_spectrogram, MAX_WAV_VALUE
-
 import torch
 import wandb
 import os
@@ -19,6 +10,15 @@ from tqdm import tqdm
 from torch.nn.utils import clip_grad_norm_
 import itertools
 from torch.utils.data import DataLoader
+
+from model.generator import Generator
+from model.mp_disc import MPDiscriminator
+from model.ms_disc import MSDiscriminator
+from loss.loss import GeneratorLoss, DiscriminatorLoss, FeatureLoss, MelLoss
+from utils.utils import count_parameters, load_waveform, log_audio
+import config
+from dataloader.meldataset import MelDataset, get_dataset_filelist, mel_spectrogram, MAX_WAV_VALUE
+
 
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -33,17 +33,16 @@ def log_audio(wav, prefix):
     os.remove(tmp_path)
 
 
-def validation(vocoder, dataloader, log_audio=log_audio, log_all=False):
-    for i, batch in enumerate(dataloader):
-        output = vocoder(batch[0].to(device)) * MAX_WAV_VALUE
-
-        if log_all:
-            for j in range(output.shape[0]):
-                log_audio(output[j], str(i) + '_' + str(j) + '_')
-                return
-        else:
-            wav_i = randint(0, output.shape[0] - 1)
-            log_audio(output[wav_i], 'valid')
+def validation_log(vocoder, dataset, mode):
+    vocoder.eval()
+    with torch.no_grad():
+        wav_i = randint(0, len(dataset) - 1)
+        _, _, filename, _ = dataset[wav_i]
+        wav = load_waveform(filename)
+        x = mel_spectrogram(wav.unsqueeze(0))
+        predicted = vocoder(x)
+        log_audio(predicted, mode)
+    vocoder.train()
 
 
 if __name__ == '__main__':
@@ -70,7 +69,7 @@ if __name__ == '__main__':
                                device=device, base_mels_path=config.input_mels_dir)
 
     train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=True)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=config.batch_size, pin_memory=True)
+    # valid_dataloader = DataLoader(valid_dataset, batch_size=config.batch_size, pin_memory=True)
 
     gen_loss_fn = GeneratorLoss()
     disc_loss_fn = DiscriminatorLoss()
@@ -110,8 +109,7 @@ if __name__ == '__main__':
 
             # batch.to(device)
             # mels = featurizer(batch.waveform)
-            mels, waveform, _, _mels = batch
-            _mels = _mels.to(device)
+            mels, waveform, _, _ = batch
             waveform = waveform.to(device).unsqueeze(1)
             mels = mels.to(device)
 
@@ -191,19 +189,12 @@ if __name__ == '__main__':
                 mpd_running_loss = 0
                 msd_running_loss = 0
 
-                wav_i = randint(0, gen_output.shape[0] - 1)
-                log_audio(gen_output[wav_i] * MAX_WAV_VALUE, "pred")
-                log_audio(waveform.squeeze(1)[wav_i], "real")
-
-                generator.eval()
-                validation(generator, valid_dataloader)
-                generator.train()
+                validation_log(generator, train_dataset, 'train')
+                validation_log(generator, valid_dataset, 'valid')
 
         disc_sched.step()
         gen_sched.step()
-        wandb.log({'disc_lr': disc_sched.get_last_lr(), 'gen_lr': gen_sched.get_last_lr()})
+        wandb.log({'disc_lr': disc_sched.get_last_lr()[0], 'gen_lr': gen_sched.get_last_lr()[0]})
         wandb.log({"epoch": epoch})
         if (epoch + 1) % config.save_model == 0:
             torch.save(generator.state_dict(), "generator_" + str(epoch))
-            torch.save(mp_disc.state_dict(), "mpdisc_" + str(epoch))
-            torch.save(ms_disc.state_dict(), "msdisc_" + str(epoch))

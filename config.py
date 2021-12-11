@@ -21,7 +21,7 @@ mpd_out_channels = mpd_in_channels[1:] + [1024]
 mpd_blocks = 5
 
 # msd
-msd_in_channels = [1, 128, 128, 256, 512, 1024, 1024]  # тут я не уловила че надо поэтому стоят числа из офиц репо
+msd_in_channels = [1, 128, 128, 256, 512, 1024, 1024]  # didn't find it in the paper, so I took these numbers from the official repo
 msd_out_channels = msd_in_channels[1:] + [1024]
 msd_kernels = [15] + [41] * 5 + [5]
 msd_strides = [1, 2, 2, 4, 4, 1, 1]
@@ -40,20 +40,20 @@ fmin = 0
 fmax = 8000
 fmax_for_loss = None
 input_mels_dir = 'ft_dataset'
-input_training_file = 'LJSpeech-1.1/one_batch.txt'  # LJSpeech-1.1/training.txt
+input_training_file = 'LJSpeech-1.1/training.txt'  # LJSpeech-1.1/one_batch.txt
 input_validation_file = 'LJSpeech-1.1/validation.txt'
 input_wavs_dir = 'LJSpeech-1.1/wavs'
 output_dir = 'predicted'
 
 # training
 batch_size = 8
-epochs = 10
+epochs = 3000
 lr = 2e-4
 limit = 1
 lambda_mel = 45
 lambda_feat = 2
 clip_grad = 10
-log_every = 1
+log_every = 50
 lr_decay = 0.999
-last_epoch = -1  # дообучение
-save_model = 10  # save dict every save_model epochs
+last_epoch = -1  # continue training
+save_model = 50  # save dict every save_model epochs
