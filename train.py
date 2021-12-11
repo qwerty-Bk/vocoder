@@ -197,4 +197,4 @@ if __name__ == '__main__':
         wandb.log({'disc_lr': disc_sched.get_last_lr()[0], 'gen_lr': gen_sched.get_last_lr()[0]})
         wandb.log({"epoch": epoch})
         if (epoch + 1) % config.save_model == 0:
-            torch.save(generator.state_dict(), "generator_" + str(epoch))
+            torch.save(generator.state_dict(), "last_generator")
