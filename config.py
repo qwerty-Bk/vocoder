@@ -42,12 +42,14 @@ fmax_for_loss = None
 input_mels_dir = 'ft_dataset'
 input_training_file = 'LJSpeech-1.1/training.txt'  # LJSpeech-1.1/one_batch.txt
 input_validation_file = 'LJSpeech-1.1/validation.txt'
+test_wavs_dir = 'test'
+test_mels_dir = 'test_mels'
 input_wavs_dir = 'LJSpeech-1.1/wavs'
 output_dir = 'predicted'
 
 # training
 batch_size = 8
-epochs = 3000
+epochs = 313
 lr = 2e-4
 limit = -1
 lambda_mel = 45
