@@ -39,7 +39,7 @@ def validation_log(vocoder, dataloader, mode, featurizer):
     vocoder.eval()
     with torch.no_grad():
         batch = next(iter(dataloader))
-        wav = batch.waveform[0]
+        wav = batch.waveform[0].to(device)
         x = featurizer(wav.unsqueeze(0))
         predicted = vocoder(x)
         log_audio(predicted, mode)
