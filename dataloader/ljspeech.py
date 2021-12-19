@@ -40,7 +40,7 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
     def load(self):
         url = "https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2"
         filename = "LJSpeech-1.1.tar.bz2"
-        if not Path("./LJSpeech-1.1").exists():
+        if not Path("./LJSpeech-1.1/wavs").exists():
             if not Path(filename).is_file():
                 print('Downloading dataset')
                 filename = wget.download(url)
