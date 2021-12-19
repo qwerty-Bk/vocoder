@@ -45,6 +45,7 @@ input_validation_file = 'LJSpeech-1.1/validation.txt'
 test_wavs_dir = 'test'
 test_mels_dir = 'test_mels'
 input_wavs_dir = 'LJSpeech-1.1/wavs'
+input_valid_dir = 'LJSpeech-1.1/valid'
 output_dir = 'predicted'
 
 # training

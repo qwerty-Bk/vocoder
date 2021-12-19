@@ -10,6 +10,7 @@ from tqdm import tqdm
 from torch.nn.utils import clip_grad_norm_
 import itertools
 from torch.utils.data import DataLoader
+from random import randint
 
 from model.generator import Generator
 from model.mp_disc import MPDiscriminator
@@ -17,7 +18,8 @@ from model.ms_disc import MSDiscriminator
 from loss.loss import GeneratorLoss, DiscriminatorLoss, FeatureLoss, MelLoss
 from utils.utils import count_parameters, load_waveform, log_audio
 import config
-from dataloader.meldataset import MelDataset, get_dataset_filelist, mel_spectrogram, MAX_WAV_VALUE
+from dataloader.dataloader import get_dataloader, get_dataset_filelist
+from dataloader.melspec import get_featurizer
 
 
 if torch.cuda.is_available():
@@ -33,13 +35,12 @@ def log_audio(wav, prefix):
     os.remove(tmp_path)
 
 
-def validation_log(vocoder, dataset, mode):
+def validation_log(vocoder, dataloader, mode, featurizer):
     vocoder.eval()
     with torch.no_grad():
-        wav_i = randint(0, len(dataset) - 1)
-        _, _, filename, _ = dataset[wav_i]
-        wav = load_waveform(filename)
-        x = mel_spectrogram(wav.unsqueeze(0))
+        batch = next(iter(dataloader))
+        wav = batch.waveform[0]
+        x = featurizer(wav.unsqueeze(0))
         predicted = vocoder(x)
         log_audio(predicted, mode)
     vocoder.train()
@@ -59,24 +60,25 @@ if __name__ == '__main__':
     print("MSDiscrim:", msd_count)
     print("MPDiscrim:", mpd_count)
 
-    # featurizer = get_featurizer().to(device)
+    featurizer = get_featurizer().to(device)
 
-    training_filelist, validation_filelist = get_dataset_filelist()
+    # training_filelist, validation_filelist = get_dataset_filelist()
 
-    train_dataset = MelDataset(training_filelist, n_cache_reuse=0, shuffle=True,
-                               device=device, base_mels_path=config.input_mels_dir)  # fine-tuning
-    valid_dataset = MelDataset(validation_filelist, n_cache_reuse=0, shuffle=True,
-                               device=device, base_mels_path=config.input_mels_dir)
+    # train_dataset = MelDataset(training_filelist, n_cache_reuse=0, shuffle=True,
+    #                            device=device, base_mels_path=config.input_mels_dir)  # fine-tuning
+    # valid_dataset = MelDataset(validation_filelist, n_cache_reuse=0, shuffle=True,
+    #                            device=device, base_mels_path=config.input_mels_dir)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=True)
+    # train_dataloader = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=True)
     # valid_dataloader = DataLoader(valid_dataset, batch_size=config.batch_size, pin_memory=True)
+
+    train_dataloader = get_dataloader(batch_size=config.batch_size)
+    # valid_dataloader = get_dataloader(path=config.input_valid_dir, batch_size=config.batch_size)
 
     gen_loss_fn = GeneratorLoss()
     disc_loss_fn = DiscriminatorLoss()
     feat_loss_fn = FeatureLoss()
     mel_loss_fn = MelLoss()
-
-    # val_dataloader = get_dataloader(batch_size=1, mode='valid')
 
     gen_opt = AdamW(generator.parameters(),
                     config.lr,
@@ -93,6 +95,7 @@ if __name__ == '__main__':
     generator.train()
     ms_disc.train()
     mp_disc.train()
+    # featurizer = get_featurizer()
 
     wandb.init(project='dla4')
 
@@ -107,9 +110,17 @@ if __name__ == '__main__':
             gen_opt.zero_grad()
             disc_opt.zero_grad()
 
-            # batch.to(device)
-            # mels = featurizer(batch.waveform)
-            mels, waveform, _, _ = batch
+            batch.to(device)
+            waveform = batch.waveform
+
+            max_audio_start = waveform.shape[1] - config.segment_size
+            audio_start = randint(0, max_audio_start)
+            waveform = waveform[:, audio_start:audio_start + config.segment_size]
+
+            # print(waveform.shape)
+
+            mels = featurizer(waveform)
+
             waveform = waveform.to(device).unsqueeze(1)
             mels = mels.to(device)
 
@@ -119,7 +130,7 @@ if __name__ == '__main__':
 
             gen_output = generator(mels)
             # print('gen_output', gen_output.shape)
-            gen_mel = mel_spectrogram(gen_output.squeeze(1))
+            gen_mel = featurizer(gen_output.squeeze(1))
             # print('gen_mel', gen_mel.shape)
 
             # Discriminators
@@ -189,8 +200,8 @@ if __name__ == '__main__':
                 mpd_running_loss = 0
                 msd_running_loss = 0
 
-                validation_log(generator, train_dataset, 'train')
-                validation_log(generator, valid_dataset, 'valid')
+                validation_log(generator, train_dataloader, 'train', featurizer)
+                # validation_log(generator, valid_dataloader, 'valid', featurizer)
 
         disc_sched.step()
         gen_sched.step()
