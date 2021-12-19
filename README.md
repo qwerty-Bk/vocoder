@@ -36,7 +36,7 @@
 2. Download the pretrained model
 
 ```
-!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1ulGWCTYu-BAa6w2rgmOeGVJAUXsvdC3d' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1ulGWCTYu-BAa6w2rgmOeGVJAUXsvdC3d" -O final_model && rm -rf /tmp/cookies.txt
+!wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1ulGWCTYu-BAa6w2rgmOeGVJAUXsvdC3d' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1ulGWCTYu-BAa6w2rgmOeGVJAUXsvdC3d" -O final_generator && rm -rf /tmp/cookies.txt
 ```
 
 4. Prediciton
