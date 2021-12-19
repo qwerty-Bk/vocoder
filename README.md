@@ -7,7 +7,8 @@
 ``
 !git clone https://github.com/qwerty-Bk/vocoder.git
 ``
-2. Install requirements (``!pip install -r requirements.txt`` for colab)
+
+2. Install requirements (``!pip install -r vocoder/requirements.txt`` for colab)
 
 ```
 %pip install torch==1.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html

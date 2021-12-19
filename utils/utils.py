@@ -3,7 +3,9 @@ import torch
 from scipy.io import wavfile
 
 import config
-from dataloader.meldataset import MAX_WAV_VALUE, load_wav
+from scipy.io.wavfile import read
+
+MAX_WAV_VALUE = 32768.0
 
 
 if torch.cuda.is_available():
@@ -29,7 +31,7 @@ def count_parameters(model):
 
 
 def load_waveform(filename):
-    wav, sr = load_wav(filename)
+    sr, wav = read(filename)
     wav = wav / MAX_WAV_VALUE
     wav = torch.FloatTensor(wav).to(device)
     return wav
